@@ -1,4 +1,4 @@
-package com.hadoop.flink;
+package flink;
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.configuration.Configuration;
@@ -8,7 +8,7 @@ import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 
 import java.util.concurrent.TimeUnit;
 
-public class MiniBatchOptimizationTest {
+public class MiniBatchOptimization {
     public static void main(String[] args) throws Exception {
         StreamExecutionEnvironment env =
                 StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(new Configuration());
@@ -44,15 +44,16 @@ public class MiniBatchOptimizationTest {
                         "trade_date   TIMESTAMP(3),--交易日期\n" +
                         "WATERMARK FOR trade_time AS trade_time - INTERVAL '5' SECONDS\n" +
                         ")WITH (\n" +
-                        "'connector' = 'faker',\n" +
-                        "'fields.stock_code.expression' = '#{regexify ''(SZ|SH|BJ|HK)-[0-9]{6}''}',\n" +
-                        "'fields.turnover.expression' = '#{Number.randomDouble ''2'',''1'',''150''}',\n" +
-                        "'fields.market_count.expression' = '#{Number.randomDouble ''2'',''1'',''150000''}',\n" +
-                        "'fields.current_market_value.expression' = '#{Number.randomDouble ''2'',''1'',''15000''}',\n" +
-                        "'fields.trade_time.expression' = '#{date.past ''30'',''SECONDS''}',\n" +
-                        "'fields.trade_date.expression' = '#{date.past ''5'',''SECONDS''}',\n" +
+                        "'connector' = 'datagen',\n" +
+                        "'fields.stock_code.length' = '6',\n" +
+                        "'fields.turnover.min' = '1',\n" +
+                        "'fields.turnover.max' = '150',\n" +
+                        "'fields.market_count.min' = '1',\n" +
+                        "'fields.market_count.max' = '150000',\n" +
+                        "'fields.current_market_value.min' = '1',\n" +
+                        "'fields.current_market_value.max' = '100000',\n" +
                         "'rows-per-second' = '180'\n" +
-                        ");";
+                        ")";
 
         String selectWhereSql =
                 "select turnover / avg_cnt from t_daily_company_info t1\n" +
@@ -63,7 +64,7 @@ public class MiniBatchOptimizationTest {
                         "where SECOND(trade_date) >= (SECOND(LOCALTIMESTAMP) -5*4*60*60)\n" +
                         "group by stock_code\n" +
                         ")t2\n" +
-                        "on t1.stock_code=t2.stock_code;";
+                        "on t1.stock_code=t2.stock_code";
 
         tEnv.executeSql(sourceSql);
         tEnv.executeSql(selectWhereSql);
