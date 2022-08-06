@@ -8,7 +8,7 @@ import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 
 import java.util.concurrent.TimeUnit;
 
-public class MiniBatchOptimization {
+public class SplitDistinctOptimization {
     public static void main(String[] args) throws Exception {
         StreamExecutionEnvironment env =
                 StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(new Configuration());
@@ -28,10 +28,17 @@ public class MiniBatchOptimization {
 
         StreamTableEnvironment tEnv = StreamTableEnvironment.create(env, settings);
         Configuration configuration = tEnv.getConfig().getConfiguration();
+
+        // 开启MiniBatch
         configuration.setString("table.exec.mini-batch.enabled", "true");
         configuration.setString("table.exec.mini-batch.allow-latency", "3 s");
         configuration.setString("table.exec.mini-batch.size", "5000");
-        configuration.setString("table.optimizer.agg-phase-strategy", "ONE_PHASE");
+
+        // 开启LocalGlobal
+        configuration.setString("table.optimizer.agg-phase-strategy", "TWO_PHASE");
+
+        // 开启Split Distinct
+        configuration.setString("table.optimizer.distinct-agg.split.enabled", "true");
 
         // SQL query
         String sourceSql =

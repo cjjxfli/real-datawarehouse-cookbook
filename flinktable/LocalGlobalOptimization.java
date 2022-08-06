@@ -60,17 +60,23 @@ public class LocalGlobalOptimization {
                         ")";
 
         String selectWhereSql =
-                "select turnover / avg_cnt from t_daily_company_info t1\n" +
+                "insert into t_volume_ratio select turnover / (5 * avg_cnt) as volume_ratio from t_daily_company_info t1\n" +
                         "left join\n" +
                         "(\n" +
                         "-- 前 5 日平均每分钟交易量\n" +
                         "select stock_code,sum(turnover) / 1200 as avg_cnt from t_daily_company_info\n" +
-                        "where SECOND(trade_date) >= (SECOND(LOCALTIMESTAMP) -5*4*60*60)\n" +
+                        "where SECOND(trade_date) >= (SECOND(LOCALTIMESTAMP) - 5*4*60*60)\n" +
                         "group by stock_code\n" +
                         ")t2\n" +
-                        "on t1.stock_code=t2.stock_code";
+                        "on t1.stock_code=t2.stock_code and SECOND(trade_time) >= (SECOND(LOCALTIMESTAMP) - 5*60)";
+
+        String sinkSql = "create table t_volume_ratio(\n" +
+                "volume_ratio DOUBLE --量比\n" +
+                ")with('connector' = 'print')";
+
 
         tEnv.executeSql(sourceSql);
+        tEnv.executeSql(sinkSql);
         tEnv.executeSql(selectWhereSql);
     }
 }
