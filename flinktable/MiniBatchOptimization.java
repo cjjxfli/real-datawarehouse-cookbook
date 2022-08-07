@@ -64,7 +64,7 @@ public class MiniBatchOptimization {
                         "where SECOND(trade_date) >= (SECOND(LOCALTIMESTAMP) - 5*4*60*60)\n" +
                         "group by stock_code\n" +
                         ")t2\n" +
-                        "on t1.stock_code=t2.stock_code";
+                        "on t1.stock_code=t2.stock_code and SECOND(trade_date) >= (SECOND(LOCALTIMESTAMP) - 5*60)";
 
         String sinkSql = "create table t_volume_ratio(\n" +
                 "volume_ratio DOUBLE --量比\n" +
