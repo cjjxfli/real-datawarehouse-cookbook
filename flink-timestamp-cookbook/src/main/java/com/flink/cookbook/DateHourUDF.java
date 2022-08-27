@@ -1,9 +1,10 @@
 package com.flink.cookbook;
+
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.table.api.EnvironmentSettings;
+import org.apache.flink.table.api.TableResult;
 import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 
 import java.util.concurrent.TimeUnit;
@@ -23,11 +24,9 @@ public class DateHourUDF {
         env.getConfig().setGlobalJobParameters(parameterTool);
         env.setParallelism(1);
 
-        EnvironmentSettings settings =
-                EnvironmentSettings.newInstance().useBlinkPlanner().inStreamingMode().build();
+        StreamTableEnvironment tEnv = StreamTableEnvironment.create(env);
 
-        StreamTableEnvironment tEnv = StreamTableEnvironment.create(env, settings);
-
+        //注册 dateHour
         tEnv.registerFunction("dateHour", new DateTransFunction(TimestampUtils.YYYY_MM_DD_HH));
         // SQL query
         String sourceSql =
@@ -40,13 +39,15 @@ public class DateHourUDF {
                         "'connector' = 'jdbc',\n" +
                         "'url' = 'jdbc:mysql://localhost:3306/db_quant_spider',\n" +
                         "'username' = 'root',\n" +
-                        "'password' = '181018lxf',\n" +
+                        "'password' = '',\n" +
                         "'table-name' = 'order')";
 
-        String selectWhereSql =
-                "select dateHour(send_time)  as  send_time_hour   from tb_orders_by_udf";
+        //使用 dateHour
+        String sinkSql =
+                "select *,dateHour(send_time) as send_time_hour from tb_orders_by_udf";
 
         tEnv.executeSql(sourceSql);
-        tEnv.executeSql(selectWhereSql);
+        TableResult tableResult = tEnv.executeSql(sinkSql);
+        tableResult.print();
     }
 }
